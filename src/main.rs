@@ -3,6 +3,7 @@
 use futures_util::StreamExt;
 use serde::Deserialize;
 use serde_json::json;
+use std::io::Write;
 
 #[derive(Debug, Deserialize)]
 struct ChatChunkDelta {
@@ -49,9 +50,8 @@ async fn main() -> Result<(), anyhow::Error> {
         .await?;
     println!("status = {}", res.status());
 
-    println!("Printing stream...");
+    println!("ChatGPT Says:");
     println!();
-    print!("> ");
     let mut stream = res.bytes_stream();
     while let Some(item) = stream.next().await {
         let item = item?;
@@ -76,6 +76,11 @@ async fn main() -> Result<(), anyhow::Error> {
                     let c = d.choices.get(0).expect("No choice returned");
                     if let Some(content) = &c.delta.content {
                         print!("{}", content);
+                    }
+
+                    // Flush stdout as it goes...
+                    if let Err(error) = std::io::stdout().flush() {
+                        panic!("{}", error);
                     }
                 }
                 None => {}
